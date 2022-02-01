@@ -1,0 +1,125 @@
+#include "point_list.h"
+#include <stdio.h>
+#include <string.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#define container_of(ptr, type, member) (type*)((char*)(ptr) - offsetof(type, member))
+
+void read_from_text_file(char *path_to_file, intrusive_list_t *l) {
+    FILE *f = fopen(path_to_file, "r");
+    int x, y;
+    while (fscanf(f, "%d %d", &x, &y) == 2) 
+        add_point(l, x, y);
+    fclose(f);
+}
+
+int bytes_to_int(unsigned char* buffer) {
+    return (buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
+}
+
+void read_from_binary_file(char *path_to_file, intrusive_list_t *l) {
+    FILE *f = fopen(path_to_file, "rb");
+    unsigned char* buffer = malloc(6 * sizeof(unsigned char));
+    assert(buffer);
+
+    while (fread(buffer, 6, 1, f) == 1) {
+        int x = bytes_to_int(buffer);
+        int y = bytes_to_int(buffer + 3);
+        add_point(l, x, y);
+    }
+    free(buffer);
+    fclose(f);
+}
+
+void save_to_text_file(char *path_to_file, intrusive_list_t *l) {
+    FILE *f = fopen(path_to_file, "w");
+    
+    intrusive_node_t *head = &(l -> head);
+    intrusive_node_t *cur_node = head -> prev;
+    
+    while (cur_node != head) {
+        point_t *item = container_of(cur_node, point_t, node);
+        fprintf(f, "%d %d", item -> x, item -> y);
+        if (cur_node -> prev != head)
+            fprintf(f, "\n");
+        cur_node = cur_node -> prev;
+    }
+    fclose(f);
+}
+
+void int_to_bytes(int x, unsigned char* buffer) {
+    buffer[0] = x & 0xFF;
+    buffer[1] = (x >> 8) & 0xFF;
+    buffer[2] = (x >> 16) & 0xFF;
+}
+
+void save_to_binary_file(char *path_to_file, intrusive_list_t *l) {
+    FILE *f = fopen(path_to_file, "wb");
+    unsigned char* buffer = malloc(6 * sizeof(unsigned char));
+    assert(buffer);
+
+    intrusive_node_t *head = &(l -> head);
+    intrusive_node_t *cur_node = head -> prev;
+    
+    while (cur_node != head) {
+        point_t *item = container_of(cur_node, point_t, node);
+        int_to_bytes(item->x, buffer);
+        int_to_bytes(item->y, buffer + 3);
+        fwrite(buffer, 6, 1, f);
+        cur_node = cur_node -> prev;
+    }
+    free(buffer);
+    fclose(f);
+}
+
+void op1(intrusive_node_t *node, void* fmt) {
+    point_t *item = container_of(node, point_t, node);
+    printf((char*)fmt, item->x, item->y);
+}
+
+void op2(intrusive_node_t *node, void* number) {
+    *(int*)number = *(int*)number + 1;
+}
+
+int main(int argc, char** argv) {
+    if (argc < 4)
+        return 0;
+    char* type_of_file = argv[1];
+    char* path_to_input_file = argv[2];
+
+    intrusive_list_t list;
+    intrusive_list_t *l = &list;
+    init_list(l);
+
+    if (strcmp(type_of_file, "loadtext") == 0)
+        read_from_text_file(path_to_input_file, l);
+    else
+        read_from_binary_file(path_to_input_file, l);
+
+    char* action = argv[3];
+
+    if (strcmp(action, "savetext") == 0) {
+        char* path_to_output_file = argv[4];
+        save_to_text_file(path_to_output_file, l);
+    }
+    else if (strcmp(action, "savebin") == 0) {
+        char* path_to_output_file = argv[4];
+        save_to_binary_file(path_to_output_file, l);
+    }
+    else if (strcmp(action, "print") == 0) {
+        char* fmt = argv[4];
+        apply(l, op1, fmt);
+        printf("\n");
+    }
+    else {
+        int *size = malloc(sizeof(int));
+        assert(size);
+        *size = 0;
+        apply(l, op2, size);
+        printf("%d\n", *size);
+        free(size);
+    }
+    remove_all_points(l);
+}

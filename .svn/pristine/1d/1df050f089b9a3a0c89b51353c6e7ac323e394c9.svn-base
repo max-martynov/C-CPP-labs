@@ -1,0 +1,50 @@
+#include "matrix.h"
+
+
+std::size_t read_register_number() {
+    std::string reg;
+    std::cin >> reg;
+    return reg[1] - '0';
+}
+
+int main() {
+    Matrix* registers = new Matrix [10];
+
+    std::string cmd;
+    while (std::cin >> cmd) {
+        if (cmd == "exit")
+            break;
+
+        std::size_t reg_num = read_register_number();
+
+        try {
+            if (cmd == "load") {
+                std::string input_file_name;
+                std::cin >> input_file_name;
+                registers[reg_num].assign_from_file(input_file_name);
+            }
+            else if (cmd == "print") {
+                std::cout << registers[reg_num];
+            }
+            else if (cmd == "add") {
+                std::size_t reg_num2 = read_register_number();
+                registers[reg_num] += registers[reg_num2];
+            }
+            else if (cmd == "mul") {
+                std::size_t reg_num2 = read_register_number();
+                registers[reg_num] *= registers[reg_num2];
+            }
+            else if (cmd == "elem") {
+                std::size_t row, col;
+                std::cin >> row >> col;
+                std::cout << registers[reg_num].get(row, col) << std::endl;
+            }
+        } catch (const MatrixException& e) {
+            std::cout << e.what() << std::endl;
+        }
+    }
+
+    delete [] registers;
+
+    return 0;
+}

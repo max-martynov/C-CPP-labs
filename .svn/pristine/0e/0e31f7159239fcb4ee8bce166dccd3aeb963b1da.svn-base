@@ -1,0 +1,52 @@
+#ifndef LAB10_EMPLOYEES_H_INCLUDED
+#define LAB10_EMPLOYEES_H_INCLUDED
+
+#include <cstdint>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <cassert>
+
+const int DEVELOPER_TYPE = 1;
+const int SALES_MANAGER_TYPE = 2;
+const int INT_SIZE_BYTES = 4;
+
+class Employee {
+public:
+    Employee() {};
+    Employee(std::string name, int32_t base_salary);
+    virtual ~Employee() {};
+
+    virtual int salary() const = 0;
+
+    static Employee* read_employee();
+    static Employee* create_by_type(int type);
+
+    friend std::istream& operator >> (std::istream&, Employee&);
+    virtual void read_specific_employee(std::istream& in) = 0;
+
+    friend std::ostream& operator<<(std::ostream&, const Employee&);
+    virtual void print_specific_employee(std::ostream& out) const = 0;
+
+    friend std::ifstream& operator>>(std::ifstream&, Employee&);
+    virtual void read_specific_employee_from_file(std::ifstream& in) = 0;
+
+    friend std::ofstream& operator<<(std::ofstream&, const Employee&);
+    virtual void print_specific_employee_to_file(std::ofstream& out) const = 0;
+
+    static int32_t read_int_from_file(std::ifstream& in);
+    static void print_int_to_file(std::ofstream& out, int32_t x);
+
+protected:
+    void print_name(std::ofstream &out) const;
+
+private:
+    void read_name(std::ifstream& in);
+
+protected:
+    std::string _name;
+    int32_t _base_salary;
+};
+
+#endif

@@ -1,0 +1,193 @@
+#include "huffman.h"
+#include <unordered_map>
+#include <exception>
+
+
+TreeNode::TreeNode(TreeNode *lc, TreeNode *rc, int cnt) : left_child(lc), right_child(rc), cnt(cnt) {}
+
+TreeNode::TreeNode(TreeNode *lc, TreeNode *rc, int cnt, char c1) : TreeNode(lc, rc, cnt) {
+    c = c1;
+}
+
+TreeNode::~TreeNode() {
+    delete left_child;
+    delete right_child;
+}
+
+
+HuffTree::HuffTree(const std::array<std::size_t, NUM_BYTES> &ft) {
+    for (std::size_t i = 0; i < ft.size(); i++) {
+        if (ft[i] > 0)
+            nodes.insert(new TreeNode(nullptr, nullptr, ft[i], (char) i));
+    }
+    while (nodes.size() > 1)
+        merge_nodes();
+    if (nodes.size() == 1)
+        root = *nodes.begin();
+}
+
+void HuffTree::merge_nodes() noexcept {
+    TreeNode* min1 = *nodes.begin();
+    nodes.erase(nodes.begin());
+    TreeNode* min2 = *nodes.begin();
+    nodes.erase(nodes.begin());
+    nodes.insert(new TreeNode(min1, min2, min1->get_cnt() + min2->get_cnt()));
+}
+
+std::array<std::string, NUM_BYTES> HuffTree::get_codes() const noexcept {
+    std::array<std::string, NUM_BYTES> codes;
+    if (root != nullptr) {
+        std::string start_code;
+        if (root->is_leaf())
+            start_code += "0";
+        dfs(root, codes, start_code);
+    }
+    return codes;
+}
+
+void HuffTree::dfs(TreeNode* node, std::array<std::string, NUM_BYTES> &codes, std::string current_code) const noexcept {
+    if (node->is_leaf()) {
+        codes[(unsigned char)node->get_symbol()] = current_code;
+        return;
+    }
+    if (node->get_left_child() != nullptr)
+        dfs(node->get_left_child(), codes, current_code + "0");
+    if (node->get_right_child() != nullptr)
+        dfs(node->get_right_child(), codes, current_code + "1");
+}
+
+HuffTree::~HuffTree() {
+    delete root;
+}
+
+
+void HuffmanArchiver::archive(std::string input_file, std::string output_file) {
+    try {
+        read_data(input_file);
+    } catch(const std::ifstream::failure& e) {
+        std::cout << "Cannot read file!\n";
+        return;
+    }
+    build_frequency_table(input);
+    auto* tree = new HuffTree(ft);
+    codes = tree->get_codes();
+    delete tree;
+    try {
+        write(output_file);
+    } catch(const std::ifstream::failure& e) {
+        std::cout << "Cannot write to file!\n";
+        return;
+    }
+}
+
+
+void HuffmanArchiver::read_data(std::string input_file) {
+    std::ifstream in(input_file);
+    in.exceptions(std::ifstream::failbit);
+    in.seekg(0, std::ios::end);
+    input.reserve(in.tellg());
+    in.seekg(0, std::ios::beg);
+    input.assign((std::istreambuf_iterator<char>(in)),
+                     std::istreambuf_iterator<char>());
+}
+
+void HuffmanArchiver::build_frequency_table(const std::string &input) noexcept {
+    for (auto e : input)
+        ft[(unsigned char)e]++;
+}
+
+std::string HuffmanArchiver::encode(const std::string &str) const noexcept {
+    std::string encoded;
+    for (auto c : str)
+        encoded += codes[(unsigned char)c];
+    return encoded;
+}
+
+void HuffmanArchiver::write(std::string output_file) const {
+    std::ofstream out(output_file);
+    out.exceptions(std::ofstream::failbit);
+    for (auto e : ft) {
+        out.write(reinterpret_cast<const char *>(&e), sizeof(e));
+    }
+    std::string encoded = encode(input);
+
+    std::size_t extra_bits = (BYTE_SIZE - encoded.length() % BYTE_SIZE) % BYTE_SIZE;
+    out.write(reinterpret_cast<const char *>(&extra_bits), sizeof(extra_bits));
+
+    for (std::size_t i = 0; i < encoded.size(); i += BYTE_SIZE) {
+        unsigned char byte = convert_to_char(encoded.substr(i, std::min((std::size_t)BYTE_SIZE, encoded.size() - i)));
+        out.write(reinterpret_cast<const char *>(&byte), sizeof(byte));
+    }
+    std::cout << input.size() << '\n' << (encoded.size() + extra_bits) / BYTE_SIZE << '\n' << ft.size() * sizeof(ft[0]) + sizeof(extra_bits) << std::endl;
+}
+
+unsigned char HuffmanArchiver::convert_to_char(std::string s) const noexcept {
+    while(s.size() < BYTE_SIZE)
+        s.push_back('0');
+    unsigned char c = '\0';
+    for (std::size_t i = 0; i < BYTE_SIZE; i++)
+        c += (s[i] - '0') * (1 << (BYTE_SIZE - 1 - i));
+    return c;
+}
+
+
+void HuffmanUnarchiver::unarchive(std::string input_file, std::string output_file) {
+    try {
+        read_data(input_file);
+    } catch(const std::ifstream::failure& e) {
+        std::cout << "Cannot read file!\n";
+        return;
+    }
+    auto* tree = new HuffTree(ft);
+    codes = tree->get_codes();
+    delete tree;
+    try {
+        decode_and_write(output_file);
+    } catch(const std::ifstream::failure& e) {
+        std::cout << "Cannot write to file!\n";
+        return;
+    }
+}
+
+void HuffmanUnarchiver::read_data(std::string input_file) {
+    std::ifstream in(input_file);
+    in.exceptions(std::ifstream::failbit);
+
+    for (int i = 0; i < NUM_BYTES; i++) {
+        in.read(reinterpret_cast<char *>(&ft[i]), sizeof(ft[i]));
+    }
+    in.read(reinterpret_cast<char *>(&extra_bits), sizeof(extra_bits));
+
+    auto cur_pos = in.tellg();
+    in.seekg(0, std::ios::end);
+    encoded.reserve(in.tellg() - cur_pos);
+    in.seekg(cur_pos);
+    encoded.assign((std::istreambuf_iterator<char>(in)),
+                   std::istreambuf_iterator<char>());
+}
+
+void HuffmanUnarchiver::decode_and_write(std::string output_file) const {
+    std::ofstream out(output_file);
+    out.exceptions(std::ofstream::failbit);
+
+    std::unordered_map<std::string, char> symbols;
+    for (std::size_t i = 0; i < codes.size(); i++)
+        symbols[codes[i]] = i;
+
+    std::string cur_code;
+    std::size_t cnt_bytes = 0;
+    for (std::size_t i = 0; i < encoded.size(); i++) {
+        for (int pos = BYTE_SIZE - 1; pos >= 0; pos--) {
+            if (i == encoded.size() - 1 && pos < extra_bits)
+                break;
+            cur_code += ((((unsigned char)encoded[i] >> pos) & 1) ? "1" : "0");
+            if (symbols.find(cur_code) != symbols.end()) {
+                char byte = symbols[cur_code];
+                out.write(reinterpret_cast<const char *>(&byte), sizeof(byte));
+                cur_code.clear();
+                cnt_bytes++;
+            }
+        }
+    }
+    std::cout << encoded.length() << '\n' << cnt_bytes << '\n' << ft.size() * sizeof(ft[0]) + sizeof(extra_bits) << std::endl;
+}

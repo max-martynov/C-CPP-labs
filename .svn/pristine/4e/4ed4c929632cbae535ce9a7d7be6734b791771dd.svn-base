@@ -1,0 +1,31 @@
+#include "sales_manager.h"
+
+
+SalesManager::SalesManager(std::string name, int32_t base_salary, int32_t sold_nm, int32_t price) :
+        Employee(name, base_salary), _sold_nm(sold_nm), _price(price) {}
+
+void SalesManager::read_specific_employee(std::istream& in) {
+    in >> _sold_nm >> _price;
+}
+
+void SalesManager::print_specific_employee(std::ostream &out) const {
+    out << "Sales Manager" << std::endl;
+    out << "Name: " << _name << std::endl;
+    out << "Base Salary: " << _base_salary << std::endl;
+    out << "Sold items: " << _sold_nm << std::endl;
+    out << "Item price: " << _price << std::endl;
+}
+
+void SalesManager::read_specific_employee_from_file(std::ifstream &in) {
+    _sold_nm = read_int_from_file(in);
+    _price = read_int_from_file(in);
+}
+
+void SalesManager::print_specific_employee_to_file(std::ofstream &out) const {
+    int32_t type = SALES_MANAGER_TYPE;
+    print_int_to_file(out, type);
+    print_name(out);
+    print_int_to_file(out, _base_salary);
+    print_int_to_file(out, _sold_nm);
+    print_int_to_file(out, _price);
+}

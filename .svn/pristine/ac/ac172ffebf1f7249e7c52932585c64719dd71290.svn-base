@@ -1,0 +1,29 @@
+#ifndef LAB_10_DEVELOPER_H
+#define LAB_10_DEVELOPER_H
+
+#include "employee.h"
+
+
+class Developer : public Employee {
+public:
+    Developer() {};
+    Developer(std::string name, int32_t base_salary, bool has_bonus);
+    ~Developer() {};
+
+    int salary() const override {
+        int salary = _base_salary;
+        if (_has_bonus) { salary += 1000; }
+        return salary;
+    }
+
+    void read_specific_employee(std::istream& in) override;
+    void print_specific_employee(std::ostream& out) const override;
+
+    void read_specific_employee_from_file(std::ifstream& in) override;
+    void print_specific_employee_to_file(std::ofstream& out) const override;
+
+private:
+    bool _has_bonus;
+};
+
+#endif //LAB_10_DEVELOPER_H

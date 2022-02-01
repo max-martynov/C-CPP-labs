@@ -1,0 +1,115 @@
+#include "matrix.h"
+#include <cstring>
+#include <algorithm>
+
+Matrix::Matrix(std::size_t r, std::size_t c) {
+    try {
+        _rows = r;
+        _cols = c;
+        _data = new int [_rows * _cols];
+        std::memset(_data, 0, sizeof(int) *  _rows * _cols);
+    } catch (const std::bad_alloc &e) {
+        delete_data();
+        throw MatrixException("Unable to allocate memory.");
+    }
+}
+
+Matrix::Matrix(const Matrix &m) {
+    try {
+        _rows = m._rows;
+        _cols = m._cols;
+        _data = new int [_rows * _cols];
+        std::memcpy(_data, m._data, sizeof(int) * _rows * _cols);
+    } catch (const std::bad_alloc &e) {
+        delete_data();
+        throw MatrixException("Unable to allocate memory.");
+    }
+}
+
+void Matrix::delete_data() noexcept {
+    delete [] _data;
+}
+
+Matrix& Matrix::operator=(Matrix m) {
+    swap(*this, m);
+    return *this;
+}
+
+void swap(Matrix& m1, Matrix& m2) noexcept {
+    std::swap(m1._rows, m2._rows);
+    std::swap(m1._cols, m2._cols);
+    std::swap(m1._data, m2._data);
+}
+
+Matrix::~Matrix() {
+    delete_data();
+}
+
+int Matrix::get(std::size_t i, std::size_t j) const {
+    if (i < 0 || i >= _rows || j < 0 || j >= _cols)
+        throw MatrixException("ACCESS: bad index.");
+    return _data[i * _cols + j];
+}
+
+void Matrix::assign_from_file(std::string input_file_name) {
+    std::ifstream in (input_file_name);
+    if (!in.is_open())
+        throw MatrixException("LOAD: unable to open file.");
+    in >> *this;
+}
+
+std::ifstream& operator>>(std::ifstream &in, Matrix &m) {
+    in.exceptions(std::ifstream::failbit);
+    std::size_t rows, cols;
+    try {
+        in >> rows >> cols;
+    } catch(const std::ifstream::failure& e) {
+        throw MatrixException("LOAD: invalid file format.");
+    }
+
+    Matrix *tmp = new Matrix(rows, cols);
+
+    try {
+        for (std::size_t i = 0; i < tmp->_rows * tmp->_cols; i++) {
+            in >> tmp->_data[i];
+        }
+    } catch(const std::ifstream::failure& e) {
+        delete tmp;
+        throw MatrixException("LOAD: invalid file format.");
+    }
+    m = *tmp;
+    delete tmp;
+    return in;
+}
+
+std::ostream& operator<<(std::ostream &out, const Matrix &m) noexcept {
+    for (std::size_t i = 0; i < m._rows * m._cols; i++) {
+        out << m._data[i];
+        out << ((i + 1) % m._cols == 0 ? '\n' : ' ');
+    }
+    return out;
+}
+
+Matrix& Matrix::operator+=(const Matrix& m) {
+    if (_rows != m._rows || _cols != m._cols)
+        throw MatrixException("ADD: dimensions do not match.");
+    for (std::size_t i = 0; i < _rows * _cols; i++) {
+        _data[i] += m._data[i];
+    }
+    return *this;
+}
+
+Matrix& Matrix::operator*=(const Matrix& m) {
+    if (_cols != m._rows)
+        throw MatrixException("MUL: #arg1.columns != #arg2.rows.");
+    Matrix* tmp = new Matrix(_rows, m._cols);
+    for (std::size_t i = 0; i < _rows; i++) {
+        for (std::size_t j = 0; j < m._cols; j++) {
+            for (std::size_t k = 0; k < _cols; k++)
+                tmp->_data[i * m._cols + j] += _data[i * _cols + k] * m._data[k * m._cols + j];
+        }
+    }
+    *this = *tmp;
+    delete tmp;
+    return *this;
+}

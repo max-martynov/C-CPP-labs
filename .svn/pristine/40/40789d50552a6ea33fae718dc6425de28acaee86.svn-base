@@ -1,0 +1,90 @@
+#pragma once
+#include <cstddef>
+#include <set>
+#include <vector>
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <algorithm>
+#include <array>
+
+
+const std::size_t NUM_BYTES = 256;
+const std::size_t BYTE_SIZE = 8;
+
+class TreeNode {
+public:
+    TreeNode(TreeNode* lc, TreeNode* rc, int cnt);
+    TreeNode(TreeNode* lc, TreeNode* rc, int cnt, char c);
+    ~TreeNode();
+
+    TreeNode* get_left_child() const noexcept { return left_child; };
+    TreeNode* get_right_child() const noexcept { return right_child; };
+    int get_cnt() const noexcept { return cnt; };
+    char get_symbol() const noexcept { return c; };
+
+    bool is_leaf() const noexcept { return left_child == nullptr && right_child == nullptr; };
+
+private:
+    TreeNode* left_child;
+    TreeNode* right_child;
+    int cnt;
+    char c;
+};
+
+struct TreeNodeComparator {
+    bool operator() (const TreeNode *a, const TreeNode* b) const {
+        return a->get_cnt() < b->get_cnt();
+    }
+};
+
+
+class HuffTree {
+public:
+    ~HuffTree();
+
+    explicit HuffTree(const std::array<std::size_t, NUM_BYTES> &ft);
+    std::array<std::string, NUM_BYTES> get_codes() const noexcept;
+
+private:
+    void merge_nodes() noexcept;
+    void dfs(TreeNode* node, std::array<std::string, NUM_BYTES> &codes, std::string current_code) const noexcept;
+
+private:
+    std::multiset<TreeNode*, TreeNodeComparator> nodes;
+    TreeNode* root = nullptr;
+};
+
+
+class HuffmanArchiver {
+public:
+    void archive(std::string input_file, std::string output_file);
+
+private:
+    void read_data(std::string input_file);
+    void build_frequency_table(const std::string &input) noexcept;
+    std::string encode(const std::string& str) const noexcept;
+    void write(std::string output_file) const;
+    unsigned char convert_to_char(std::string s) const noexcept;
+
+private:
+    std::string input;
+    std::array<std::size_t, NUM_BYTES> ft{};
+    std::array<std::string, NUM_BYTES> codes;
+};
+
+
+class HuffmanUnarchiver {
+public:
+    void unarchive(std::string input_file, std::string output_file);
+
+private:
+    void read_data(std::string input_file);
+    void decode_and_write(std::string output_file) const;
+
+private:
+    std::array<std::size_t, NUM_BYTES> ft{};
+    std::size_t extra_bits;
+    std::string encoded;
+    std::array<std::string, NUM_BYTES> codes;
+};

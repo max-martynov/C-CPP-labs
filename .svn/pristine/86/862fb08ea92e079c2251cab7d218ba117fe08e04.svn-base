@@ -1,0 +1,28 @@
+#ifndef LAB_10_SALES_MANAGER_H
+#define LAB_10_SALES_MANAGER_H
+
+#include "employee.h"
+
+
+class SalesManager : public Employee {
+public:
+    SalesManager() {};
+    SalesManager(std::string name, int32_t base_salary, int32_t sold_nm, int32_t price);
+    ~SalesManager() {};
+
+    int salary() const override {
+        return _base_salary + _sold_nm * _price * 0.01;
+    }
+
+    void read_specific_employee(std::istream& in) override;
+    void print_specific_employee(std::ostream& out) const override;
+
+    void read_specific_employee_from_file(std::ifstream& in) override;
+    void print_specific_employee_to_file(std::ofstream& out) const override;
+
+private:
+    int32_t _sold_nm, _price;
+};
+
+
+#endif //LAB_10_SALES_MANAGER_H

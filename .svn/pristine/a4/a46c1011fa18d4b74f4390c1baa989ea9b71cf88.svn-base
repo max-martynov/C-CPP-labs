@@ -1,0 +1,66 @@
+#include "mergesort.h"
+#include <stdio.h>
+
+int char_comparator(const void* first, const void* second) {
+    const char* first_elem = first;
+    const char* second_elem = second;
+    if (*first_elem == '\0')
+        return 1;
+    if (*second_elem == '\0')
+        return -1;
+    return *first_elem - *second_elem;
+}
+
+int int_comparator(const void* first, const void* second) {
+    const int* first_elem = first;
+    const int* second_elem = second;
+    return *first_elem - *second_elem;
+}
+
+int str_comparator(const void* first, const void* second) {
+    const char** first_elem = (void*)first;
+    const char** second_elem = (void*)second;
+    return strcmp(*first_elem, *second_elem);
+}
+
+int main(int argc, char** argv) {
+    if (argc < 2)
+        return 0;
+    char* type = *(argv + 1);
+
+    if(strcmp(type, "char") == 0) {
+        char* array = (char*)malloc((argc - 2) * sizeof(char));
+        assert(array);
+        for (int i = 0; i < argc - 2; i++)
+            array[i] = argv[i + 2][0];
+        mergesort(array, argc - 2, sizeof(char), char_comparator);
+        for (int i = 0; i < argc - 2; i++)
+            printf("%c ", array[i]);
+        printf("%c", '\n');
+        free(array);
+    }
+    
+    if(strcmp(type, "int") == 0) {
+        int* array = (int*)malloc((argc - 2) * sizeof(int));
+        assert(array);
+        for (int i = 0; i < argc - 2; i++)
+            array[i] = atoi(argv[i + 2]); 
+        mergesort(array, argc - 2, sizeof(int), int_comparator);
+        for (int i = 0; i < argc - 2; i++)
+            printf("%d ", array[i]);
+        printf("%c", '\n');
+        free(array);
+    }
+
+    if (strcmp(type, "str") == 0) {
+        char** array = (char**)malloc((argc - 2) * sizeof(char*));
+        assert(array);
+        for (int i = 0; i < argc - 2; i++)
+            array[i] = argv[i + 2];
+        mergesort(array, argc - 2, sizeof(char*), str_comparator);
+        for (int i = 0; i < argc - 2; i++)
+            printf("%s ", array[i]);
+        printf("%c", '\n');
+        free(array);
+    } 
+}

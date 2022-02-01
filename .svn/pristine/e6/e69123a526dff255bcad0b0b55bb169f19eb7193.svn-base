@@ -1,0 +1,36 @@
+#pragma once
+#include <cstddef>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include "matrix_exception.h"
+
+
+class Matrix {
+public:
+    Matrix() : Matrix(0, 0) {};
+    Matrix(std::size_t r, std::size_t c);
+    Matrix(const Matrix& m);
+    Matrix& operator=(Matrix m);
+    ~Matrix();
+
+    friend void swap(Matrix&, Matrix&) noexcept;
+
+    int get(std::size_t i, std::size_t j) const;
+
+    void assign_from_file(std::string input_file_name);
+
+    friend std::ifstream& operator>>(std::ifstream&, Matrix&);
+    friend std::ostream& operator<<(std::ostream&, const Matrix&) noexcept;
+
+    Matrix& operator+=(const Matrix& m);
+    Matrix& operator*=(const Matrix& m);
+
+private:
+    void delete_data() noexcept;
+
+private:
+    std::size_t _rows;
+    std::size_t _cols;
+    int* _data;
+};

@@ -1,0 +1,74 @@
+#include "employee.h"
+#include "developer.h"
+#include "sales_manager.h"
+#include <cstring>
+
+
+Employee::Employee(std::string name, int32_t base_salary) : _name(name), _base_salary(base_salary) {}
+
+Employee* Employee::read_employee() {
+    int type;
+    std::cin >> type;
+    Employee* e = create_by_type(type);
+    assert(e != nullptr);
+    std::cin >> *e;
+    return e;
+}
+
+Employee* Employee::create_by_type(int type) {
+    switch (type) {
+        case DEVELOPER_TYPE:
+            return new Developer();
+        case SALES_MANAGER_TYPE:
+            return new SalesManager();
+    }
+    return nullptr;
+}
+
+std::istream& operator>>(std::istream& in, Employee& e) {
+    in >> e._name >> e._base_salary;
+    e.read_specific_employee(in);
+    return in;
+}
+
+std::ostream& operator<<(std::ostream& out, const Employee &e) {
+    e.print_specific_employee(out);
+    return out;
+}
+
+std::ifstream& operator>>(std::ifstream& in, Employee& e) {
+    e.read_name(in);
+    e._base_salary = Employee::read_int_from_file(in);
+    e.read_specific_employee_from_file(in);
+    return in;
+}
+
+void Employee::read_name(std::ifstream& in) {
+    char c;
+    while (in.read(&c, 1)) {
+        if (c == '\0')
+            break;
+        _name.push_back(c);
+    }
+}
+
+int32_t Employee::read_int_from_file(std::ifstream &in) {
+    int32_t x;
+    in.read((char*)&x, INT_SIZE_BYTES);
+    return x;
+}
+
+std::ofstream& operator<<(std::ofstream& out, const Employee& e) {
+    e.print_specific_employee_to_file(out);
+    return out;
+}
+
+void Employee::print_name(std::ofstream &out) const {
+    char name[_name.length() + 1];
+    strcpy(name, _name.c_str());
+    out.write(name, sizeof name);
+}
+
+void Employee::print_int_to_file(std::ofstream& out, int32_t x) {
+    out.write((char*)&x, INT_SIZE_BYTES);
+}

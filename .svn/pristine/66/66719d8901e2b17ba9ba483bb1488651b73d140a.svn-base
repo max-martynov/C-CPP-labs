@@ -1,0 +1,36 @@
+#include "huffman.h"
+#include <cstring>
+
+
+void bad_case() {
+    std::cout << "Wrong command line arguments!\n";
+    exit(0);
+}
+
+std::pair <std::string, std::string> parse_file_names(char** argv) {
+    if (strcmp(argv[2], "-f") != 0 && strcmp(argv[2], "--file") != 0)
+        bad_case();
+    std::string input_file(argv[3]);
+    if (strcmp(argv[4], "-o") != 0 && strcmp(argv[4], "--output") != 0)
+        bad_case();
+    std::string output_file(argv[5]);
+    return {input_file, output_file};
+}
+
+int main(int argc, char** argv) {
+    if (argc < 6)
+        bad_case();
+    char* mode = argv[1];
+    auto files = parse_file_names(argv);
+    if (strcmp(mode, "-c") == 0) {
+        HuffmanArchiver h;
+        h.archive(files.first, files.second);
+    }
+    else if (strcmp(mode, "-u") == 0) {
+        HuffmanUnarchiver h;
+        h.unarchive(files.first, files.second);
+    }
+    else
+        bad_case();
+    return 0;
+}
